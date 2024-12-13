@@ -8,6 +8,8 @@ use rand::Rng;
 use rpassword::read_password;
 use rusqlite::Connection;
 use validator::ValidateEmail;
+use std::env;
+use std::path::PathBuf;
 
 pub fn get_email_from_user(db_name: &str) -> anyhow::Result<String, String> {
     loop {
@@ -148,3 +150,10 @@ pub fn pause(seconds: u64) {
 }
 
 pub fn clear_screen() { execute!(std::io::stdout(), Clear(ClearType::All)); }
+
+pub fn default_config_path() -> PathBuf {
+    PathBuf::from("config.json")
+}
+pub fn get_config_path() -> PathBuf {
+    env::var("CONFIG_PATH").map(PathBuf::from).unwrap_or_else(|_| default_config_path())
+}

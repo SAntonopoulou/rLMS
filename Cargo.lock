@@ -12,6 +12,8 @@ dependencies = [
  "rand",
  "rpassword",
  "rusqlite",
+ "serde",
+ "serde_json",
  "validator",
 ]
 

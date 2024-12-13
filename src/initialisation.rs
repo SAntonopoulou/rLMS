@@ -2,6 +2,45 @@ use rusqlite::params;
 use std::error::Error;
 use rusqlite::Connection;
 use crate::utilities;
+use crate::configuration::setup_config_database_file;
+use crate::configuration::Config;
+
+pub fn check_initial(config: &mut Config, config_path: &str) -> bool {
+    let mut return_value: bool = true;
+    println!("Checking if initial setup...");
+    utilities::pause(2);
+
+    let mut database_name = get_database_name(config, &config_path);
+    database_name.push_str(".sqlite");
+    utilities::pause(1);
+    println!("Your database file will be:\n\t{}", database_name);
+
+    if !create_initial_tables(&database_name) {
+        println!("Failed to initalize tables");
+        println!("Program terminating");
+        return_value = false;
+        return return_value;
+    } else {
+        println!("Database tables created successfully!");
+        utilities::pause(1);
+    }
+
+    utilities::clear_screen();
+    match create_initial_administrator(&database_name) {
+        Ok(_) => {
+            println!("Initial administrator account created successfully!");
+            utilities::pause(1);
+        },
+        Err(e) => {
+            println!("Failed to create initial administrator account: {}", e);
+            println!("Program terminating");
+            return_value = false;
+            return return_value;
+        }
+    }
+
+    return_value
+}
 
 pub fn create_initial_tables(db_name: &str) -> bool {
     println!("Creating initial tables...");
@@ -119,7 +158,7 @@ fn create_user_table(connection: &Connection) -> bool {
     }
 }
 
-fn get_database_name() -> String {
+fn get_database_name(config: &mut Config, config_path: &str) -> String {
     println!("This program uses SQLite to store user data, and we need\nto create a new database");
     utilities::pause(1);
     let mut database = String::new();
@@ -141,6 +180,9 @@ fn get_database_name() -> String {
             println!("Invalid database name. Please try again.");
         }
     }
+    let full_database_name = format!("{}.sqlite", database);
+
+    setup_config_database_file(config, &full_database_name, config_path);
     database
 }
 
@@ -148,44 +190,6 @@ fn is_valid_database_name(db_name: &str) -> bool {
     !db_name.is_empty()
         && db_name.chars().all(|c| c.is_alphanumeric() || c =='_')
         && !db_name.contains('.')
-}
-
-
-pub fn check_initial(directory: &str) -> bool {
-    let mut return_value: bool = true;
-    println!("Checking if initial setup...");
-    utilities::pause(2);
-
-    let mut database_name = get_database_name();
-    database_name.push_str(".sqlite");
-    utilities::pause(1);
-    println!("Your database file will be:\n\t{}", database_name);
-
-    if !create_initial_tables(&database_name) {
-        println!("Failed to initalize tables");
-        println!("Program terminating");
-        return_value = false;
-        return return_value;
-    } else {
-        println!("Database tables created successfully!");
-        utilities::pause(1);
-    }
-
-    utilities::clear_screen();
-    match create_initial_administrator(&database_name) {
-        Ok(_) => {
-            println!("Initial administrator account created successfully!");
-            utilities::pause(1);
-        },
-        Err(e) => {
-            println!("Failed to create initial administrator account: {}", e);
-            println!("Program terminating");
-            return_value = false;
-            return return_value;
-        }
-    }
-
-    return_value
 }
 
 fn create_initial_administrator(db_name: &str) -> anyhow::Result<(), Box<dyn Error>> {
