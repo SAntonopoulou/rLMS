@@ -1,5 +1,6 @@
 use rusqlite::params;
 use std::error::Error;
+use bcrypt::DEFAULT_COST;
 use rusqlite::Connection;
 use crate::utilities;
 use crate::configuration::setup_config_database_file;
@@ -207,8 +208,9 @@ fn create_initial_administrator(db_name: &str) -> anyhow::Result<(), Box<dyn Err
     let admin_firstname = utilities::get_name_from_user("firstname");
     let admin_lastname = utilities::get_name_from_user("lastname");
     let admin_password = utilities::get_password_from_user();
-    let admin_salt = utilities::generate_salt(25);
-    let admin_hashed = utilities::hash_password(&*(admin_password + &*admin_salt)).unwrap();
+    let admin_salt = utilities::generate_salt(25).trim().to_string();
+    let salted_password = format!("{}{}", admin_password, admin_salt);
+    let admin_hashed = utilities::hash_password(&admin_password, &admin_salt).unwrap();
 
     // enter admin data into users entity
     connection.execute(

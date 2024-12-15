@@ -59,12 +59,21 @@ pub fn email_exists(conn: &Connection, email: &str) -> anyhow::Result<bool> {
     Ok(exists)
 }
 
-
-
 pub fn generate_salt(length: usize) -> String {
     let mut rng = rand::thread_rng();
+    let allowed_chars: Vec<char> = (b'!'..=b'~') // Printable ASCII range
+        .filter(|c| {
+            // Exclude problematic characters
+            !matches!(
+                *c as char,
+                '\n' | '\r' | '\t' | '\x0B' | '\x0C' // Control characters
+            )
+        })
+        .map(|c| c as char)
+        .collect();
+
     (0..length)
-        .map(|_| rng.gen_range(b'A'..=b'z') as char)
+        .map(|_| allowed_chars[rng.gen_range(0..allowed_chars.len())])
         .collect()
 }
 pub fn get_password_from_user() -> String {
@@ -123,6 +132,63 @@ pub fn get_name_from_user(name_type: &str) -> String {
     }
 }
 
+pub fn print_login_menu(){
+    println!("Please choose from the following options:");
+    println!("\t1. Login");
+    println!("\t2. Register");
+    println!("\t3. Exit");
+}
+
+pub fn get_menu_choice(menu_name: &str) -> usize {
+    loop {
+        match menu_name {
+            "login" => print_login_menu(),
+            &_ => println!("Invalid menu provided."),
+        }
+        let mut input = String::new(); // Clear input each iteration.
+
+        println!("Enter your choice for {}:", menu_name);
+        if io::stdin().read_line(&mut input).is_err() {
+            println!("Failed to read input. Please try again.");
+            continue;
+        }
+
+        // Attempt to parse the input
+        match input.trim().parse::<usize>() {
+            Ok(output) => {
+                if is_valid_menu_choice(output, menu_name) {
+                    return output;
+                } else {
+                    println!("Invalid menu option. Please try again.");
+                }
+            }
+            Err(err) => {
+                match err.kind() {
+                    std::num::IntErrorKind::PosOverflow => {
+                        println!("The number you entered is too large. Please enter a smaller number.");
+                    }
+                    _ => {
+                        println!("Invalid input. Please enter a valid number.");
+                    }
+                }
+            }
+        }
+    }
+}
+
+fn is_valid_menu_choice(choice: usize, menu_name: &str) -> bool {
+    match menu_name {
+        "login" => {
+            if(choice >= 1 && choice <= 3) { return true; }
+        },
+        &_ => {
+            println!("Invalid menu option.");
+        }
+    }
+
+    false
+}
+
 pub fn is_valid_name(name: &str) -> bool {
     // Step 3: Ensure the name is non-empty and contains only valid characters
     !name.is_empty() && name.chars().all(|c| c.is_alphabetic() || c.is_whitespace() || c == '-')
@@ -137,8 +203,9 @@ pub fn is_safe_password(password: &str) -> bool {
     has_min_length && has_uppercase && has_lowercase && has_digit && has_special
 }
 
-pub fn hash_password(password: &str) -> anyhow::Result<String, BcryptError> {
-    hash(password, DEFAULT_COST)
+pub fn hash_password(password: &str, salt: &str) -> anyhow::Result<String, BcryptError> {
+    let salted_password = format!("{}{}", password, salt);
+    hash(&salted_password, DEFAULT_COST)
 }
 
 pub fn verify_hash(password: &str, hashed: &str) -> anyhow::Result<bool, BcryptError> {

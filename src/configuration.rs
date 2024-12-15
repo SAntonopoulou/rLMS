@@ -4,7 +4,7 @@ use std::io::{self, Write};
 
 #[derive(Serialize, Deserialize, Debug, Default)]
 pub struct Config {
-    database_file: Option<String>,
+    pub database_file: Option<String>,
 }
 
 impl Config {

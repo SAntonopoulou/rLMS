@@ -1,6 +1,7 @@
 mod initialisation;
 mod utilities;
 mod configuration;
+mod user_management;
 
 use std::io::Write;
 use anyhow::Result;
@@ -8,23 +9,55 @@ use validator::ValidateEmail;
 use rand::Rng;
 use std::error::Error;
 use configuration::{Config, setup_config_database_file};
-
+use crate::utilities::get_menu_choice;
+use serde::Deserialize;
+use std::fs;
 fn main() -> Result<()> {
     utilities::clear_screen();
     std::io::stdout().flush()?;
 
     let config_path = utilities::get_config_path();
-
-    if let Some(config) = Config::load(config_path.to_str().unwrap()) {
+    let mut config: Config = Config::default();
+    if let Some(loaded_config) = Config::load(config_path.to_str().unwrap()) {
         println!("Configuration file found");
-        println!("Loaded configuration: {:?}", config);
+        println!("Loaded configuration: {:?}", loaded_config);
+        config = loaded_config;
     } else {
         println!("Configuration file not found. Running initialisation...");
         utilities::pause(2);
-        let mut config = Config::default();
         initialisation::check_initial(&mut config, config_path.to_str().unwrap());
         config.save(config_path.to_str().unwrap())?;
     }
-    //
+
+    utilities::clear_screen();
+    loop {
+        let choice = get_menu_choice("login");
+        match choice {
+            1 => {
+                let mut count: u32 = 1;
+                loop {
+                    if(count >= 3) {
+                        println!("Too many login attempts.");
+                        break;
+                    }
+
+                    if user_management::login_user(config.database_file.as_deref().expect("Failed to read configuration file.")) {
+                        println!("Logged in Successfully.");
+                        break;
+                    } else {
+                        count+=1;
+                    }
+                }
+            },
+            2 => {
+                user_management::register_user();
+            },
+            3 => {
+                println!("Exiting program...");
+                std::process::exit(0);
+            },
+            0_usize | 4_usize.. => todo!()
+        }
+    }
     Ok(())
 }
