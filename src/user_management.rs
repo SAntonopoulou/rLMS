@@ -5,8 +5,14 @@ use rusqlite::Connection;
 use rusqlite::params;
 use bcrypt::{hash, verify, BcryptError, DEFAULT_COST};
 use crate::utilities;
+use std::error::Error;
 
 pub fn login_user(database_name: &str) -> bool{
+    utilities::clear_screen();
+    println!("==============================");
+    println!("===       User Login       ===");
+    println!("==============================");
+
     let email: String = get_user_email();
     let password: String = get_user_password();
 
@@ -65,8 +71,86 @@ pub fn get_user_password_by_id(database_name: &str, user_id: &i32) -> Result<Str
     connection.query_row(query, params![user_id], |row| row.get(0))
 }
 
-pub fn register_user(){
+pub fn register_user(database_name: &str){
+    utilities::clear_screen();
+    println!("=============================");
+    println!("=== New User Registration ===");
+    println!("=============================");
+    let mut email: String;
+    let mut firstname: String;
+    let mut lastname: String;
+    let mut password: String;
+    let mut salt: String;
+    let mut hashed: String;
 
+    loop {
+        email= utilities::get_email_from_user(database_name).expect("REASON");
+        firstname = utilities::get_name_from_user("firstname");
+        lastname = utilities::get_name_from_user("lastname");
+        password = utilities::get_password_from_user();
+        salt = utilities::generate_salt(25).trim().to_string();
+        hashed = utilities::hash_password(&password, &salt).unwrap();
+
+        if !confirm_user_information(&email, &firstname, &lastname) { continue; }
+        else {break; }
+    }
+
+    match create_new_user(database_name, &email, &firstname, &lastname, &salt, &hashed) {
+        Ok(_) => {
+            println!("User {} account created successfully!", email);
+            utilities::pause(1);
+        },
+        Err(e) => {
+            println!("Failed to create user {} account: {}",email, e);
+            utilities::pause(1);
+        }
+    }
+}
+
+fn create_new_user(database_name: &str, email: &str, firstname: &str, lastname: &str, salt: &str, hashed: &str) -> anyhow::Result<(), Box<dyn Error>> {
+    let connection = Connection::open(database_name)?;
+
+    connection.execute(
+        "INSERT INTO users (email, firstname, lastname) VALUES (?1, ?2, ?3)",
+        params![email, firstname, lastname],
+    )?;
+
+    connection.execute(
+        "INSERT INTO salts (user_id, salt) VALUES (
+                    (SELECT user_id FROM users WHERE email = ?1), ?2)",
+        params![email, salt],
+    )?;
+
+    connection.execute(
+        "INSERT INTO passwords (user_id, password) VALUES (
+                (SELECT user_id FROM users WHERE email = ?1), ?2)",
+        params![email, hashed],
+    )?;
+
+    Ok(())
+}
+fn confirm_user_information(email: &str, firstname: &str, lastname: &str) -> bool {
+    loop {
+        println!("Please confirm the following information: ");
+        println!("\tEmail: {}", email);
+        println!("\tFirst Name: {}", firstname);
+        println!("\tLast Name: {}", lastname);
+        println!("Are these correct (y/n): ");
+        let mut input = String::new();
+        if io::stdin().read_line(&mut input).is_err() {
+            println!("Failed to read input. Please try again.");
+            continue;
+        }
+        let x = if input.to_lowercase().trim() == "y" || input.to_lowercase().trim() == "yes"
+        { return true; }
+        else if input.to_lowercase().trim() == "n" || input.to_lowercase().trim() == "no"
+        { return false; }
+        else
+        {
+            println!("Invalid input. Please try again.");
+            continue
+        };
+    }
 }
 
 fn get_user_password() -> String {

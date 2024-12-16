@@ -13,7 +13,7 @@ use std::path::PathBuf;
 
 pub fn get_email_from_user(db_name: &str) -> anyhow::Result<String, String> {
     loop {
-        println!("Enter administrator email: ");
+        println!("Enter email: ");
 
         let mut input = String::new();
         if io::stdin().read_line(&mut input).is_err() {

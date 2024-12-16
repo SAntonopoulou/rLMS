@@ -209,7 +209,6 @@ fn create_initial_administrator(db_name: &str) -> anyhow::Result<(), Box<dyn Err
     let admin_lastname = utilities::get_name_from_user("lastname");
     let admin_password = utilities::get_password_from_user();
     let admin_salt = utilities::generate_salt(25).trim().to_string();
-    let salted_password = format!("{}{}", admin_password, admin_salt);
     let admin_hashed = utilities::hash_password(&admin_password, &admin_salt).unwrap();
 
     // enter admin data into users entity

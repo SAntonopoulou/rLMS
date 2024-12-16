@@ -11,7 +11,7 @@ use std::error::Error;
 use configuration::{Config, setup_config_database_file};
 use crate::utilities::get_menu_choice;
 use serde::Deserialize;
-use std::fs;
+
 fn main() -> Result<()> {
     utilities::clear_screen();
     std::io::stdout().flush()?;
@@ -50,7 +50,7 @@ fn main() -> Result<()> {
                 }
             },
             2 => {
-                user_management::register_user();
+                user_management::register_user(config.database_file.as_deref().expect("Failed to read configuration file."));
             },
             3 => {
                 println!("Exiting program...");
