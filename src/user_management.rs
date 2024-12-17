@@ -5,13 +5,16 @@ use rusqlite::Connection;
 use rusqlite::params;
 use bcrypt::{hash, verify, BcryptError, DEFAULT_COST};
 use crate::utilities;
+use crate::user_object;
 use std::error::Error;
 
-pub fn login_user(database_name: &str) -> bool{
+pub fn login_user(database_name: &str) -> (user_object::User, bool){
     utilities::clear_screen();
     println!("==============================");
     println!("===       User Login       ===");
     println!("==============================");
+
+    let mut user = user_object::User::default();
 
     let email: String = get_user_email();
     let password: String = get_user_password();
@@ -21,7 +24,7 @@ pub fn login_user(database_name: &str) -> bool{
         Ok(id) => user_id = id,
         Err(e) => {
             println!("Invalid credentials. Please try again");
-            return false;
+            return (user, false);
         }
     }
 
@@ -30,7 +33,7 @@ pub fn login_user(database_name: &str) -> bool{
         Ok(s) => user_salt = s.trim().to_string(),
         Err(e) => {
             println!("Invalid credentials. Please try again");
-            return false;
+            return (user, false);
         }
     }
 
@@ -39,17 +42,48 @@ pub fn login_user(database_name: &str) -> bool{
         Ok(p) => user_password = p,
         Err(e) => {
             println!("Invalid credentials. Please try again");
-            return false;
+            return (user, false);
         }
     }
 
 
     let salted_password = format!("{}{}", password, user_salt);
     if bcrypt::verify(&salted_password, &user_password).unwrap_or(false) {
-        true
+        let mut firstname: String;
+        match get_user_firstname_by_id(database_name, &user_id) {
+            Ok(s) => firstname = s,
+            Err(e) => {
+                println!("Invalid credentials. Please try again");
+                return (user, false);
+            }
+        }
+
+        let mut lastname: String;
+        match get_user_lastname_by_id(database_name, &user_id) {
+            Ok(s) => lastname = s,
+            Err(e) => {
+                println!("Invalid credentials. Please try again");
+                return (user, false);
+            }
+        }
+        let mut is_admin = match get_user_is_admin_by_id(database_name, &user_id){
+            Ok(true) => true,
+            Ok(false) => false,
+            Err(_) => {
+                println!("Failed to determine admin status.");
+                false
+            }
+        };
+
+        user.set_user_id(user_id);
+        user.set_email(&email);
+        user.set_firstname(&firstname);
+        user.set_lastname(&lastname);
+        user.set_is_admin(is_admin);
+        (user, true)
     } else {
         println!("Invalid credentials. Please try again.");
-        false
+        (user, false)
     }
 }
 
@@ -71,6 +105,24 @@ pub fn get_user_password_by_id(database_name: &str, user_id: &i32) -> Result<Str
     connection.query_row(query, params![user_id], |row| row.get(0))
 }
 
+pub fn get_user_firstname_by_id(database_name: &str, user_id: &i32) -> Result<String, rusqlite::Error> {
+    let connection = Connection::open(database_name)?;
+    let query = "SELECT firstname FROM users WHERE user_id = ?1";
+    connection.query_row(query, params![user_id], |row| row.get(0))
+}
+
+pub fn get_user_lastname_by_id(database_name: &str, user_id: &i32) -> Result<String, rusqlite::Error> {
+    let connection = Connection::open(database_name)?;
+    let query = "SELECT lastname FROM users WHERE user_id = ?1";
+    connection.query_row(query, params![user_id], |row| row.get(0))
+}
+
+pub fn get_user_is_admin_by_id(database_name: &str, user_id: &i32) -> Result<bool, rusqlite::Error> {
+    let connection = Connection::open(database_name)?;
+    let query = "SELECT COUNT(*) FROM admins WHERE user_id = ?1";
+    let count: i32 = connection.query_row(query, params![user_id], |row| row.get(0))?;
+    Ok(count > 0)
+}
 pub fn register_user(database_name: &str){
     utilities::clear_screen();
     println!("=============================");

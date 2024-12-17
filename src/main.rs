@@ -2,6 +2,7 @@ mod initialisation;
 mod utilities;
 mod configuration;
 mod user_management;
+mod user_object;
 
 use std::io::Write;
 use anyhow::Result;
@@ -41,7 +42,8 @@ fn main() -> Result<()> {
                         break;
                     }
 
-                    if user_management::login_user(config.database_file.as_deref().expect("Failed to read configuration file.")) {
+                    let(user, is_valid) = user_management::login_user(config.database_file.as_deref().expect("Failed to read configuration file."));
+                    if is_valid {
                         println!("Logged in Successfully.");
                         break;
                     } else {
