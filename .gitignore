@@ -1,1 +1,15 @@
-/target
+/target/
+**/*.rs.bk
+
+# React Artifacts
+frontend/node_modules/
+frontend/build/
+static/js/static
+static/css/static
+
+# IDE specific files
+.idea/
+*.iml
+
+# Enviornment variables
+.env
