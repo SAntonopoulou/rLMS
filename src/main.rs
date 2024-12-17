@@ -9,7 +9,7 @@ use anyhow::Result;
 use validator::ValidateEmail;
 use rand::Rng;
 use std::error::Error;
-use configuration::{Config, setup_config_database_file};
+use configuration::{Config};
 use crate::utilities::get_menu_choice;
 use serde::Deserialize;
 
@@ -37,7 +37,7 @@ fn main() -> Result<()> {
             1 => {
                 let mut count: u32 = 1;
                 loop {
-                    if(count >= 3) {
+                    if count >= 3 {
                         println!("Too many login attempts.");
                         break;
                     }
@@ -45,7 +45,10 @@ fn main() -> Result<()> {
                     let(user, is_valid) = user_management::login_user(config.database_file.as_deref().expect("Failed to read configuration file."));
                     if is_valid {
                         println!("Logged in Successfully.");
+                        // DEBUGGING
+                        user.pretty_print();
                         break;
+                        // END DEBUGGING
                     } else {
                         count+=1;
                     }
@@ -58,8 +61,10 @@ fn main() -> Result<()> {
                 println!("Exiting program...");
                 std::process::exit(0);
             },
-            0_usize | 4_usize.. => todo!()
+            0_usize | 4_usize.. => {
+                println!("Exiting program...");
+                std::process::exit(0);
+            }
         }
     }
-    Ok(())
 }

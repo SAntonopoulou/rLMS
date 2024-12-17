@@ -3,7 +3,6 @@ use std::io;
 use rpassword::read_password;
 use rusqlite::Connection;
 use rusqlite::params;
-use bcrypt::{hash, verify, BcryptError, DEFAULT_COST};
 use crate::utilities;
 use crate::user_object;
 use std::error::Error;
@@ -22,7 +21,7 @@ pub fn login_user(database_name: &str) -> (user_object::User, bool){
     let mut user_id: i32;
     match get_user_id_by_email(database_name, &email) {
         Ok(id) => user_id = id,
-        Err(e) => {
+        Err(_e) => {
             println!("Invalid credentials. Please try again");
             return (user, false);
         }
@@ -31,7 +30,7 @@ pub fn login_user(database_name: &str) -> (user_object::User, bool){
     let mut user_salt:String;
     match get_user_salt_by_id(database_name, &user_id) {
         Ok(s) => user_salt = s.trim().to_string(),
-        Err(e) => {
+        Err(_e) => {
             println!("Invalid credentials. Please try again");
             return (user, false);
         }
@@ -40,7 +39,7 @@ pub fn login_user(database_name: &str) -> (user_object::User, bool){
     let mut user_password: String;
     match get_user_password_by_id(database_name, &user_id) {
         Ok(p) => user_password = p,
-        Err(e) => {
+        Err(_e) => {
             println!("Invalid credentials. Please try again");
             return (user, false);
         }
@@ -52,7 +51,7 @@ pub fn login_user(database_name: &str) -> (user_object::User, bool){
         let mut firstname: String;
         match get_user_firstname_by_id(database_name, &user_id) {
             Ok(s) => firstname = s,
-            Err(e) => {
+            Err(_e) => {
                 println!("Invalid credentials. Please try again");
                 return (user, false);
             }
@@ -61,12 +60,12 @@ pub fn login_user(database_name: &str) -> (user_object::User, bool){
         let mut lastname: String;
         match get_user_lastname_by_id(database_name, &user_id) {
             Ok(s) => lastname = s,
-            Err(e) => {
+            Err(_e) => {
                 println!("Invalid credentials. Please try again");
                 return (user, false);
             }
         }
-        let mut is_admin = match get_user_is_admin_by_id(database_name, &user_id){
+        let is_admin = match get_user_is_admin_by_id(database_name, &user_id){
             Ok(true) => true,
             Ok(false) => false,
             Err(_) => {
@@ -193,7 +192,7 @@ fn confirm_user_information(email: &str, firstname: &str, lastname: &str) -> boo
             println!("Failed to read input. Please try again.");
             continue;
         }
-        let x = if input.to_lowercase().trim() == "y" || input.to_lowercase().trim() == "yes"
+        if input.to_lowercase().trim() == "y" || input.to_lowercase().trim() == "yes"
         { return true; }
         else if input.to_lowercase().trim() == "n" || input.to_lowercase().trim() == "no"
         { return false; }
@@ -208,7 +207,7 @@ fn confirm_user_information(email: &str, firstname: &str, lastname: &str) -> boo
 fn get_user_password() -> String {
     loop {
         println!("Enter your password: ");
-        let password = match read_password() {
+        match read_password() {
             Ok(password) => {
                 password.trim().to_string();
                 return password;},

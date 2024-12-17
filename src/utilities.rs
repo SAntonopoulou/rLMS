@@ -88,7 +88,7 @@ pub fn get_password_from_user() -> String {
         };
 
         if !is_safe_password(&password) {
-            println!("Password does not meet safety critera. Please try again.");
+            println!("Password does not meet safety criteria. Please try again.");
             println!("Must include: number, uppercase, lowercase, and special character.");
             continue;
         }
@@ -179,7 +179,7 @@ pub fn get_menu_choice(menu_name: &str) -> usize {
 fn is_valid_menu_choice(choice: usize, menu_name: &str) -> bool {
     match menu_name {
         "login" => {
-            if(choice >= 1 && choice <= 3) { return true; }
+            if choice >= 1 && choice <= 3 { return true; }
         },
         &_ => {
             println!("Invalid menu option.");
@@ -213,10 +213,10 @@ pub fn verify_hash(password: &str, hashed: &str) -> anyhow::Result<bool, BcryptE
 }
 
 pub fn pause(seconds: u64) {
-    thread::sleep(Duration::from_secs(seconds as u64));
+    thread::sleep(Duration::from_secs(seconds));
 }
 
-pub fn clear_screen() { execute!(std::io::stdout(), Clear(ClearType::All)); }
+pub fn clear_screen() { execute!(io::stdout(), Clear(ClearType::All)); }
 
 pub fn default_config_path() -> PathBuf {
     PathBuf::from("config.json")

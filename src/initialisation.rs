@@ -1,6 +1,5 @@
 use rusqlite::params;
 use std::error::Error;
-use bcrypt::DEFAULT_COST;
 use rusqlite::Connection;
 use crate::utilities;
 use crate::configuration::setup_config_database_file;
@@ -17,7 +16,7 @@ pub fn check_initial(config: &mut Config, config_path: &str) -> bool {
     println!("Your database file will be:\n\t{}", database_name);
 
     if !create_initial_tables(&database_name) {
-        println!("Failed to initalize tables");
+        println!("Failed to initialise tables");
         println!("Program terminating");
         return_value = false;
         return return_value;
@@ -27,6 +26,9 @@ pub fn check_initial(config: &mut Config, config_path: &str) -> bool {
     }
 
     utilities::clear_screen();
+    println!("========================================");
+    println!("===   Create Initial Administrator   ===");
+    println!("========================================");
     match create_initial_administrator(&database_name) {
         Ok(_) => {
             println!("Initial administrator account created successfully!");
@@ -104,7 +106,7 @@ fn create_admin_table(connection: &Connection) -> bool {
 
     match result {
         Ok(_) => true,
-        Err(e) => false,
+        Err(_e) => false,
     }
 }
 
@@ -122,7 +124,7 @@ fn create_salt_table(connection: &Connection) -> bool {
 
     match result {
         Ok(_) => true,
-        Err(e) => false,
+        Err(_e) => false,
     }
 }
 fn create_password_table(connection: &Connection) -> bool {
@@ -139,7 +141,7 @@ fn create_password_table(connection: &Connection) -> bool {
 
     match result {
         Ok(_) => true,
-        Err(e) => false
+        Err(_e) => false
     }
 }
 fn create_user_table(connection: &Connection) -> bool {
@@ -155,7 +157,7 @@ fn create_user_table(connection: &Connection) -> bool {
 
     match result {
         Ok(_) => true,
-        Err(e) => false
+        Err(_e) => false
     }
 }
 
