@@ -21,7 +21,7 @@ pub fn get_email_from_user(db_name: &str) -> anyhow::Result<String, String> {
             continue;
         }
 
-        let email = input.trim();
+        let email = input.trim().to_lowercase();
 
         // Validate email format
         if !email.validate_email() {
@@ -31,7 +31,7 @@ pub fn get_email_from_user(db_name: &str) -> anyhow::Result<String, String> {
 
         // Check database for email existence
         match Connection::open(db_name) {
-            Ok(connection) => match email_exists(&connection, email) {
+            Ok(connection) => match email_exists(&connection, &email) {
                 Ok(true) => {
                     println!("Email '{}' already exists in the database.", email);
                     println!("Please enter a different email.");

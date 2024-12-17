@@ -177,7 +177,7 @@ fn get_user_email() -> String {
             continue;
         }
 
-        let email:String = std::string::String::from(input.trim());
+        let email:String = std::string::String::from(input.trim()).to_lowercase();
 
         // Validate email format
         if !email.validate_email()  {
