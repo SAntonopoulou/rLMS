@@ -3,6 +3,7 @@ mod utilities;
 mod configuration;
 mod user_management;
 mod user_object;
+mod book_processing;
 
 use std::io::Write;
 use anyhow::Result;
@@ -10,11 +11,12 @@ use validator::ValidateEmail;
 use rand::Rng;
 use std::error::Error;
 use configuration::{Config};
-use crate::utilities::get_menu_choice;
+use crate::utilities::{clear_screen, get_menu_choice, pause};
 use serde::{Deserialize};
+use crate::user_object::User;
 
-
-fn main() -> Result<()> {
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     utilities::clear_screen();
     std::io::stdout().flush()?;
 
@@ -31,8 +33,13 @@ fn main() -> Result<()> {
         config.save(config_path.to_str().unwrap())?;
     }
 
+    let book: book_processing::Book = book_processing::get_book_info("9781985086593").await?;
+    book_processing::print_book_info(&book);
+
+    let mut logged_in: bool = false;
     utilities::clear_screen();
-    loop {
+    let mut user: User = User::default();
+    while !logged_in {
         let choice = get_menu_choice("login");
         match choice {
             1 => {
@@ -42,14 +49,11 @@ fn main() -> Result<()> {
                         println!("Too many login attempts.");
                         break;
                     }
-
-                    let(user, is_valid) = user_management::login_user(config.database_file.as_deref().expect("Failed to read configuration file."));
+                    let(user_check, is_valid) = user_management::login_user(config.database_file.as_deref().expect("Failed to read configuration file."));
                     if is_valid {
-                        println!("Logged in Successfully.");
-                        // DEBUGGING
-                        user.pretty_print();
+                        user = user_check;
+                        logged_in = true;
                         break;
-                        // END DEBUGGING
                     } else {
                         count+=1;
                     }
@@ -68,4 +72,19 @@ fn main() -> Result<()> {
             }
         }
     }
+
+    let mut run_program:bool = true;
+    while run_program {
+        clear_screen();
+        if user.get_is_admin(){
+            utilities::print_admin_menu_header();
+            utilities::print_admin_menu();
+        } else {
+            utilities::print_user_menu_header(&user.get_firstname());
+            utilities::print_user_menu();
+        }
+        break;
+    }
+    Ok(())
 }
+

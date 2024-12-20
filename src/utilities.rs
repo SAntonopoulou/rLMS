@@ -224,3 +224,24 @@ pub fn default_config_path() -> PathBuf {
 pub fn get_config_path() -> PathBuf {
     env::var("CONFIG_PATH").map(PathBuf::from).unwrap_or_else(|_| default_config_path())
 }
+
+pub fn print_admin_menu_header(){
+    println!("======================");
+    println!("== rLMS Admin Panel ==");
+    println!("======================");
+}
+
+pub fn print_user_menu_header(firstname: &str) {
+    let welcome_string: &str = &("== Welcome back ".to_owned() + firstname + " ==");
+    let header_footer_length = welcome_string.len();
+    let header_footer = "=".repeat(header_footer_length);
+    let menu = format!("{}\n{}\n{}", header_footer, welcome_string, header_footer);
+    println!("{}", menu);
+}
+
+pub fn print_admin_menu(){
+
+}
+pub fn print_user_menu() {
+
+}
