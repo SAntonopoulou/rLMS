@@ -10,3 +10,5 @@ code looking like it's related to webpages...because it is.*
 * sqlite3 v3.47.2
 * nodejs v23.4.0
 * npm v10.9.2
+
+It is worth noting that this application makes use of the Open Library API for retreiving the data from books via ISBN.
