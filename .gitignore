@@ -13,3 +13,9 @@ static/css/static
 
 # Enviornment variables
 .env
+
+# SQLite Database
+*.sqlite
+
+# Config File
+config.json
