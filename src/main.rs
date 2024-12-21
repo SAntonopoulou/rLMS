@@ -13,12 +13,11 @@ use anyhow::Result;
 use configuration::Config;
 use crate::utilities::{clear_screen, get_menu_choice, pause};
 use crate::user_object::User;
-use crate::book_object::Book;
 use crate::book_processing::get_book_info;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    utilities::clear_screen();
+    clear_screen();
     std::io::stdout().flush()?;
 
     // Load configuration
@@ -30,22 +29,22 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         config = loaded_config;
     } else {
         println!("Configuration file not found. Running initialisation...");
-        utilities::pause(2);
+        pause(2);
         initialisation::check_initial(&mut config, config_path.to_str().unwrap());
         config.save(config_path.to_str().unwrap())?;
     }
 
-    /*
-    // testing the book retrevial functions and object
+
+    // testing the book functions and object
     let isbn = "9781985086593";
     println!("Fetching information for ISBN: {}", isbn);
     let book = get_book_info(isbn).await?;
     println!("Book information retrieved successfully.\n");
     book.print_book_info();
-    */
+    pause(10);
 
     let mut logged_in: bool = false;
-    utilities::clear_screen();
+    clear_screen();
     let mut user: User = User::default();
     while !logged_in {
         let choice = get_menu_choice("login");

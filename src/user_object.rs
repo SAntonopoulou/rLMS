@@ -14,7 +14,13 @@ impl User {
             2 => false,
             _ => panic!("Invalid value for is admin: {}. Exiting program.", is_admin_int),
         };
-        User { user_id, email, firstname, lastname, is_admin }
+        User {
+            user_id,
+            email,
+            firstname,
+            lastname,
+            is_admin
+        }
     }
 
     pub fn set_user_id(&mut self, user_id: i32) { self.user_id = user_id; }

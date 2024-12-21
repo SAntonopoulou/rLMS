@@ -1,6 +1,4 @@
-use crate::book_object::{Book, WorkLink};
-use serde::Deserialize;
-use reqwest::Error;
+use crate::book_object::{Book};
 
 fn is_valid_isbn(isbn: &str) -> bool {
     let cleaned: String = isbn.chars().filter(|c| c.is_digit(10)).collect();
