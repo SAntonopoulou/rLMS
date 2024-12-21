@@ -1,25 +1,27 @@
+// src/main.rs
+
 mod initialisation;
 mod utilities;
 mod configuration;
 mod user_management;
 mod user_object;
 mod book_processing;
+mod book_object;
 
 use std::io::Write;
 use anyhow::Result;
-use validator::ValidateEmail;
-use rand::Rng;
-use std::error::Error;
-use configuration::{Config};
+use configuration::Config;
 use crate::utilities::{clear_screen, get_menu_choice, pause};
-use serde::{Deserialize};
 use crate::user_object::User;
+use crate::book_object::Book;
+use crate::book_processing::get_book_info;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     utilities::clear_screen();
     std::io::stdout().flush()?;
 
+    // Load configuration
     let config_path = utilities::get_config_path();
     let mut config: Config = Config::default();
     if let Some(loaded_config) = Config::load(config_path.to_str().unwrap()) {
@@ -33,8 +35,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         config.save(config_path.to_str().unwrap())?;
     }
 
-    let book: book_processing::Book = book_processing::get_book_info("9781985086593").await?;
-    book_processing::print_book_info(&book);
+    /*
+    // testing the book retrevial functions and object
+    let isbn = "9781985086593";
+    println!("Fetching information for ISBN: {}", isbn);
+    let book = get_book_info(isbn).await?;
+    println!("Book information retrieved successfully.\n");
+    book.print_book_info();
+    */
 
     let mut logged_in: bool = false;
     utilities::clear_screen();
@@ -49,18 +57,24 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         println!("Too many login attempts.");
                         break;
                     }
-                    let(user_check, is_valid) = user_management::login_user(config.database_file.as_deref().expect("Failed to read configuration file."));
+                    let (user_check, is_valid) = user_management::login_user(
+                        config.database_file.as_deref().expect("Failed to read configuration file.")
+                    );
                     if is_valid {
                         user = user_check;
                         logged_in = true;
+                        println!("Login successful!");
                         break;
                     } else {
-                        count+=1;
+                        count += 1;
+                        println!("Invalid credentials. Attempt {}/3.", count);
                     }
                 }
             },
             2 => {
-                user_management::register_user(config.database_file.as_deref().expect("Failed to read configuration file."));
+                user_management::register_user(
+                    config.database_file.as_deref().expect("Failed to read configuration file.")
+                );
             },
             3 => {
                 println!("Exiting program...");
@@ -73,18 +87,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
-    let mut run_program:bool = true;
+    let mut run_program: bool = true;
     while run_program {
         clear_screen();
         if user.get_is_admin(){
             utilities::print_admin_menu_header();
             utilities::print_admin_menu();
+            // Implement admin menu functionality
         } else {
             utilities::print_user_menu_header(&user.get_firstname());
             utilities::print_user_menu();
+            // Implement user menu functionality
         }
         break;
     }
     Ok(())
 }
-
