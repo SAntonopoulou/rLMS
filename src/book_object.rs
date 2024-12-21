@@ -1,29 +1,29 @@
 use serde::Deserialize;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct Subject {
     pub name: String,
 }
 
 // Structs for additional fields
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct Publisher {
     pub name: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct Author {
     pub name: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct Cover {
     pub small: Option<String>,
     pub medium: Option<String>,
     pub large: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct WorkLink {
     pub key: String,
 }
@@ -110,6 +110,17 @@ impl Book {
     pub fn get_publishers(&self) -> Option<Vec<Publisher>> { self.publishers.clone() }
     pub fn has_cover(&self) -> bool { self.cover.is_some() }
     pub fn get_covers(&self) -> Option<Cover> { self.cover.clone() }
+    fn get_small_cover(&self) -> Option<&String> {
+        self.cover.as_ref()?.small.as_ref()
+    }
+
+    fn get_medium_cover(&self) -> Option<&String> {
+        self.cover.as_ref()?.medium.as_ref()
+    }
+
+    fn get_large_cover(&self) -> Option<&String> {
+        self.cover.as_ref()?.large.as_ref()
+    }
     pub fn get_cover_by_size(&self, size: &str) -> Option<&String> {
         match size.to_lowercase().as_str() {
             "small" => self.get_small_cover(),
