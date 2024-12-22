@@ -47,6 +47,10 @@ fn is_valid_isbn13(isbn: &str) -> bool {
  *  Note: As this is an async function you MUST include an .await after
  *        calling this method. Otherwise, you will run into issues with
  *        a type mismatch of type future. Just a heads-up.
+ *
+ *        This will use the Open Library API so bef sure to check there if
+ *        you would like your program to take into account other fields
+ *        that they offer.
  */
 pub async fn get_book_info(isbn: &str) -> Result<Book, Box<dyn std::error::Error>> {
     if !is_valid_isbn(isbn) {

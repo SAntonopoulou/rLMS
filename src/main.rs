@@ -1,5 +1,3 @@
-// src/main.rs
-
 mod initialisation;
 mod utilities;
 mod configuration;
@@ -34,7 +32,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         config.save(config_path.to_str().unwrap())?;
     }
 
-
+    /*
     // testing the book functions and object
     let isbn = "9781985086593";
     println!("Fetching information for ISBN: {}", isbn);
@@ -42,6 +40,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Book information retrieved successfully.\n");
     book.print_book_info();
     pause(10);
+     */
 
     let mut logged_in: bool = false;
     clear_screen();
@@ -90,12 +89,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     while run_program {
         clear_screen();
         if user.get_is_admin(){
-            utilities::print_admin_menu_header();
             utilities::print_admin_menu();
             // Implement admin menu functionality
         } else {
-            utilities::print_user_menu_header(&user.get_firstname());
-            utilities::print_user_menu();
+            utilities::print_user_menu(&user.get_firstname());
             // Implement user menu functionality
         }
         break;

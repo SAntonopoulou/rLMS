@@ -240,8 +240,22 @@ pub fn print_user_menu_header(firstname: &str) {
 }
 
 pub fn print_admin_menu(){
-
+    print_admin_menu_header();
+    println!(
+        "Choose from the options below:\n\
+        \t1. Add Book\n\
+        \t2. Remove Book\n\
+        \t3. List Books\n
+        \t0. Logout\n"
+    );
 }
-pub fn print_user_menu() {
-
+pub fn print_user_menu(firstname: &str) {
+    print_user_menu_header(firstname);
+    println!(
+        "Choose from the options below:\n\
+        \t1. Modify Personal Information\n\
+        \t2. Search Your Books\n\
+        \t3. Modify You Collection\n\
+        \t0. Logout\n"
+    );
 }
