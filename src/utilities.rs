@@ -140,9 +140,15 @@ pub fn print_login_menu(){
 }
 
 pub fn get_menu_choice(menu_name: &str) -> usize {
+    let mut loop_count: u32 = 0;
     loop {
+        loop_count += 1;
         match menu_name {
             "login" => print_login_menu(),
+            "user"  => {
+                if loop_count > 1 { print_user_menu(false); }
+                else { print_user_menu(true) }
+            },
             &_ => println!("Invalid menu provided."),
         }
         let mut input = String::new(); // Clear input each iteration.
@@ -180,6 +186,9 @@ fn is_valid_menu_choice(choice: usize, menu_name: &str) -> bool {
     match menu_name {
         "login" => {
             if choice >= 1 && choice <= 3 { return true; }
+        },
+        "user" => {
+            if choice >= 0 && choice <= 4 { return true;}
         },
         &_ => {
             println!("Invalid menu option.");
@@ -231,31 +240,43 @@ pub fn print_admin_menu_header(){
     println!("======================");
 }
 
-pub fn print_user_menu_header(firstname: &str) {
-    let welcome_string: &str = &("== Welcome back ".to_owned() + firstname + " ==");
+pub fn print_user_menu_header() {
+    let welcome_string: &str = &("== Welcome back ==");
     let header_footer_length = welcome_string.len();
     let header_footer = "=".repeat(header_footer_length);
     let menu = format!("{}\n{}\n{}", header_footer, welcome_string, header_footer);
     println!("{}", menu);
 }
 
-pub fn print_admin_menu(){
-    print_admin_menu_header();
+pub fn print_admin_menu(header: bool){
+    if header {
+        print_admin_menu_header();
+    }
+
     println!(
         "Choose from the options below:\n\
-        \t1. Add Book\n\
-        \t2. Remove Book\n\
-        \t3. List Books\n
+        \t1. List Users\n\
+        \t2. Add User\n\
+        \t3. Remove User\n
         \t0. Logout\n"
     );
 }
-pub fn print_user_menu(firstname: &str) {
-    print_user_menu_header(firstname);
+pub fn print_user_menu(header: bool) {
+    if header {
+        print_user_menu_header();
+    }
     println!(
         "Choose from the options below:\n\
-        \t1. Modify Personal Information\n\
-        \t2. Search Your Books\n\
-        \t3. Modify You Collection\n\
+        \t1. Search Your Books\n\
+        \t2. Add Book\n\
+        \t3. Delete Book\n\
+        \t4. Modify Personal Information\n\
         \t0. Logout\n"
     );
+}
+
+pub fn process_user_menu_choice(choice: usize) {
+    while !is_valid_menu_choice(choice, "user") {
+        println!("Invalid choice. Please try again.");
+    }
 }

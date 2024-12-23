@@ -9,7 +9,7 @@ mod book_object;
 use std::io::Write;
 use anyhow::Result;
 use configuration::Config;
-use crate::utilities::{clear_screen, get_menu_choice, pause};
+use crate::utilities::{clear_screen, get_menu_choice, pause, process_user_menu_choice};
 use crate::user_object::User;
 use crate::book_processing::get_book_info;
 
@@ -89,11 +89,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     while run_program {
         clear_screen();
         if user.get_is_admin(){
-            utilities::print_admin_menu();
+            utilities::print_admin_menu(true);
             // Implement admin menu functionality
         } else {
-            utilities::print_user_menu(&user.get_firstname());
+            utilities::print_user_menu(true);
+            get_menu_choice("user");
             // Implement user menu functionality
+            //process_user_menu_choice(get_menu_choice("user"));
         }
         break;
     }
