@@ -88,16 +88,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut run_program: bool = true;
     while run_program {
         clear_screen();
-        if user.get_is_admin(){
+        if user.get_is_admin() {
             utilities::print_admin_menu(true);
-            // Implement admin menu functionality
+            // Implement admin menu functionality here
+            // For example:
+            // run_program = process_admin_menu_choice(get_menu_choice("admin")).await;
         } else {
             utilities::print_user_menu(true);
-            get_menu_choice("user");
-            // Implement user menu functionality
-            //process_user_menu_choice(get_menu_choice("user"));
+            let choice = get_menu_choice("user");
+            run_program = process_user_menu_choice(choice).await;
         }
-        break;
     }
+    println!("Exiting program...");
     Ok(())
 }

@@ -1,6 +1,6 @@
 use crate::book_object::{Book};
 
-fn is_valid_isbn(isbn: &str) -> bool {
+pub fn is_valid_isbn(isbn: &str) -> bool {
     let cleaned: String = isbn.chars().filter(|c| c.is_digit(10)).collect();
     match cleaned.len() {
         10 => is_valid_isbn10(&cleaned),
@@ -53,13 +53,15 @@ fn is_valid_isbn13(isbn: &str) -> bool {
  *        that they offer.
  */
 pub async fn get_book_info(isbn: &str) -> Result<Book, Box<dyn std::error::Error>> {
-    if !is_valid_isbn(isbn) {
+    let trimmed_isbn = isbn.trim(); // Ensure the ISBN is trimmed
+
+    if !is_valid_isbn(trimmed_isbn) {
         return Err("Invalid ISBN".into());
     }
 
     let url = format!(
         "https://openlibrary.org/api/books?bibkeys=ISBN:{}&format=json&jscmd=data",
-        isbn
+        trimmed_isbn
     );
 
     let response = reqwest::get(&url).await?;
@@ -69,13 +71,11 @@ pub async fn get_book_info(isbn: &str) -> Result<Book, Box<dyn std::error::Error
     }
 
     let text = response.text().await?;
-
     let json: serde_json::Value = serde_json::from_str(&text)?;
 
-    let key = format!("ISBN:{}", isbn);
+    let key = format!("ISBN:{}", trimmed_isbn);
     if let Some(book_data) = json.get(&key) {
         let book: Book = serde_json::from_value(book_data.clone())?;
-
         Ok(book)
     } else {
         Err("Book not found".into())

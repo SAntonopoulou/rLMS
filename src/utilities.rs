@@ -1,3 +1,4 @@
+use crate::book_processing;
 use crossterm::terminal::ClearType;
 use crossterm::terminal::Clear;
 use std::{io, thread};
@@ -10,6 +11,7 @@ use rusqlite::Connection;
 use validator::ValidateEmail;
 use std::env;
 use std::path::PathBuf;
+
 
 pub fn get_email_from_user(db_name: &str) -> anyhow::Result<String, String> {
     loop {
@@ -163,7 +165,7 @@ pub fn get_menu_choice(menu_name: &str) -> usize {
         match input.trim().parse::<usize>() {
             Ok(output) => {
                 if is_valid_menu_choice(output, menu_name) {
-                    return output;
+                    return output
                 } else {
                     println!("Invalid menu option. Please try again.");
                 }
@@ -275,8 +277,91 @@ pub fn print_user_menu(header: bool) {
     );
 }
 
-pub fn process_user_menu_choice(choice: usize) {
-    while !is_valid_menu_choice(choice, "user") {
-        println!("Invalid choice. Please try again.");
+fn print_add_book_header() {
+    println!("############################");
+    println!("## Add Book to Collection ##");
+    println!("############################");
+}
+
+async fn add_new_book_to_collection() -> bool {
+    clear_screen();
+    print_add_book_header();
+    // get the ISBN from the user
+    let mut isbn: String = String::new();
+    loop {
+        println!("Enter ISBN(10 or 13):");
+        isbn.clear();
+        if io::stdin().read_line(&mut isbn).is_err() {
+            println!("Failed to read input. Please try again.");
+            continue;
+        }
+
+        let trimmed_isbn = isbn.trim();
+
+        if !book_processing::is_valid_isbn(trimmed_isbn) {
+            println!("Invalid ISBN {}. Please try again.", trimmed_isbn);
+        } else {
+            // valid ISBN
+            break;
+        }
+    }
+
+    match book_processing::get_book_info(isbn.trim()).await {
+        Ok(book) => {
+            book.print_book_info();
+            pause(120);
+        },
+        Err(e) => {
+            println!("Error fetching book information: {}", e);
+        }
+    }
+
+    true
+}
+pub async fn process_user_menu_choice(choice: usize) -> bool {
+    match choice {
+        1 => {
+            println!("You chose to Search Your Books.");
+            // Implement search functionality here
+            // For example:
+            // search_books().await;
+            pause(2);
+            true // Continue the loop
+        },
+        2 => {
+            if add_new_book_to_collection().await {
+                println!("Book added successfully.");
+            } else {
+                println!("Failed to add the book.");
+            }
+            pause(2);
+            true // Continue the loop
+        },
+        3 => {
+            println!("You chose to Delete a Book.");
+            // Implement delete functionality here
+            // For example:
+            // delete_book().await;
+            pause(2);
+            true // Continue the loop
+        },
+        4 => {
+            println!("You chose to Modify Personal Information.");
+            // Implement modification functionality here
+            // For example:
+            // modify_user_info().await;
+            pause(2);
+            true // Continue the loop
+        },
+        0 => {
+            println!("Logging out...");
+            pause(1);
+            false // Exit the loop
+        },
+        _ => {
+            println!("Invalid choice. Please try again.");
+            pause(2);
+            true // Continue the loop
+        },
     }
 }
