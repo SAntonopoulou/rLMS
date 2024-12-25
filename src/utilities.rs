@@ -15,7 +15,7 @@ use crate::book_object::Book;
 use rusqlite::Connection;
 use rusqlite::params;
 use std::error::Error;
-use anyhow::{Context, Result};
+use anyhow::{Context};
 
 pub fn get_email_from_user(db_name: &str) -> anyhow::Result<String, String> {
     loop {
@@ -312,9 +312,6 @@ async fn add_new_book_to_collection(database_name: &str, user: &User) -> bool {
 
     match book_processing::get_book_info(isbn.trim()).await {
         Ok(book) => {
-            book.print_book_info();
-            pause(120);
-
             upload_book_to_database(book, isbn.trim(), &user, database_name);
         },
         Err(e) => {

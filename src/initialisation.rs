@@ -84,12 +84,67 @@ pub fn create_initial_tables(db_name: &str) -> bool {
             };
             println!("Successfully created admins table.");
 
+            println!("Creating books table...");
+            utilities::pause(1);
+            if !create_book_table(&connection) {
+                println!("Could not create books table.");
+                return false;
+            };
+            println!("Successfully created books table.");
+
+            println!("Creating libraries table...");
+            utilities::pause(1);
+            if !create_libary_table(&connection){
+                println!("Could not create libraries table.");
+                return false;
+            };
+            println!("Successfully created libraries table.");
+
             true
         }
         Err(e) => {
             eprintln!("Failed to establish database connection: {}", e);
             false
         }
+    }
+}
+
+fn create_book_table(connection: &Connection) -> bool {
+    let result = connection.execute(
+        "CREATE TABLE IF NOT EXISTS books (
+            book_id INTEGER PRIMARY KEY,
+            title VARCHAR(200) NOT NULL,
+            author VARCHAR(200) NOT NULL,
+            isbn VARCHAR(200) NOT NULL UNIQUE
+            );",
+        [],
+    );
+
+    match result {
+        Ok(_) => true,
+        Err(_e) => false,
+    }
+}
+
+fn create_libary_table(connection: &Connection) -> bool {
+    let result = connection.execute(
+        "CREATE TABLE IF NOT EXISTS libraries (
+            user_id INTEGER,
+            book_id INTEGER,
+            PRIMARY KEY (user_id, book_id),
+            FOREIGN KEY (user_id) REFERENCES users(user_id)
+            ON DELETE CASCADE
+            ON UPDATE CASCADE,
+            FOREIGN KEY (book_id) REFERENCES books(book_id)
+            ON DELETE CASCADE
+            ON UPDATE CASCADE
+            );",
+        [],
+    );
+
+    match result {
+        Ok(_) => true,
+        Err(_e) => false,
     }
 }
 
