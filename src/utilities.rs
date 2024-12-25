@@ -1,3 +1,4 @@
+use crate::User;
 use crate::book_processing;
 use crossterm::terminal::ClearType;
 use crossterm::terminal::Clear;
@@ -7,11 +8,14 @@ use bcrypt::{hash, verify, BcryptError, DEFAULT_COST};
 use crossterm::execute;
 use rand::Rng;
 use rpassword::read_password;
-use rusqlite::Connection;
 use validator::ValidateEmail;
 use std::env;
 use std::path::PathBuf;
-
+use crate::book_object::Book;
+use rusqlite::Connection;
+use rusqlite::params;
+use std::error::Error;
+use anyhow::{Context, Result};
 
 pub fn get_email_from_user(db_name: &str) -> anyhow::Result<String, String> {
     loop {
@@ -283,7 +287,7 @@ fn print_add_book_header() {
     println!("############################");
 }
 
-async fn add_new_book_to_collection() -> bool {
+async fn add_new_book_to_collection(database_name: &str, user: &User) -> bool {
     clear_screen();
     print_add_book_header();
     // get the ISBN from the user
@@ -310,6 +314,8 @@ async fn add_new_book_to_collection() -> bool {
         Ok(book) => {
             book.print_book_info();
             pause(120);
+
+            upload_book_to_database(book, isbn.trim(), &user, database_name);
         },
         Err(e) => {
             println!("Error fetching book information: {}", e);
@@ -318,7 +324,33 @@ async fn add_new_book_to_collection() -> bool {
 
     true
 }
-pub async fn process_user_menu_choice(choice: usize) -> bool {
+
+fn upload_book_to_database(book: Book, isbn: &str, user: &User, database_name: &str) -> anyhow::Result<(), Box<dyn Error>> {
+    let connection = Connection::open(database_name)?;
+    let primary_author = &book.get_authors()[0].name;
+    let title = book.get_title();
+    connection.execute(
+        "INSERT INTO books (title, author, isbn) VALUES (?1, ?2, ?3)",
+        params![title, primary_author, isbn.trim()],
+    ).context("Failed to execute INSERT into books table")?;
+
+    let query = "SELECT book_id FROM books WHERE isbn = ?1 AND title = ?2";
+    let book_id: i32 = connection.query_row(
+        query,
+        params![isbn.trim(), title],
+        |row| row.get(0)
+    ).context("Failed to retrieve book_id from books table")?;
+
+    let user_id = user.get_user_id();
+
+    connection.execute(
+        "INSERT INTO libraries (user_id, book_id) VALUES (?1, ?2)",
+        params![user_id, book_id],
+    ).context("Failed to execute insert into libraries table")?;
+    Ok(())
+}
+
+pub async fn process_user_menu_choice(choice: usize, user: &User, database_name: &str) -> bool {
     match choice {
         1 => {
             println!("You chose to Search Your Books.");
@@ -329,7 +361,7 @@ pub async fn process_user_menu_choice(choice: usize) -> bool {
             true // Continue the loop
         },
         2 => {
-            if add_new_book_to_collection().await {
+            if add_new_book_to_collection(database_name, &user).await {
                 println!("Book added successfully.");
             } else {
                 println!("Failed to add the book.");

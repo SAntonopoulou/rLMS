@@ -96,7 +96,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         } else {
             utilities::print_user_menu(true);
             let choice = get_menu_choice("user");
-            run_program = process_user_menu_choice(choice).await;
+            run_program = process_user_menu_choice(choice, &user, config.database_file.as_deref().expect("Failed to read configuration file.")).await;
         }
     }
     println!("Exiting program...");
