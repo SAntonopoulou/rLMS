@@ -145,6 +145,34 @@ pub fn print_login_menu(){
     println!("\t3. Exit");
 }
 
+pub fn get_yes_or_no() -> bool {
+    let mut choice = String::new();
+    loop {
+        if io::stdin().read_line(&mut choice).is_err() {
+            println!("Failed to read input. Please try again.");
+            continue;
+        }
+
+        let trimmed_lower = choice.trim().to_lowercase();
+        if trimmed_lower != "y" && trimmed_lower != "yes" && trimmed_lower != "n" && trimmed_lower != "no" {
+            println!("Invalid choice. Please try again.");
+        } else {
+            match trimmed_lower.as_str() {
+                "y" | "yes" => {
+                    return true;
+                },
+                "n" | "no" => {
+                    return false;
+                },
+                _ => {
+                    println!("Invalid choice. Please try again.");
+                    continue;
+                }
+            }
+        }
+    }
+}
+
 pub fn get_menu_choice(menu_name: &str) -> usize {
     let mut loop_count: u32 = 0;
     loop {
@@ -281,72 +309,6 @@ pub fn print_user_menu(header: bool) {
     );
 }
 
-fn print_add_book_header() {
-    println!("############################");
-    println!("## Add Book to Collection ##");
-    println!("############################");
-}
-
-async fn add_new_book_to_collection(database_name: &str, user: &User) -> bool {
-    clear_screen();
-    print_add_book_header();
-    // get the ISBN from the user
-    let mut isbn: String = String::new();
-    loop {
-        println!("Enter ISBN(10 or 13):");
-        isbn.clear();
-        if io::stdin().read_line(&mut isbn).is_err() {
-            println!("Failed to read input. Please try again.");
-            continue;
-        }
-
-        let trimmed_isbn = isbn.trim();
-
-        if !book_processing::is_valid_isbn(trimmed_isbn) {
-            println!("Invalid ISBN {}. Please try again.", trimmed_isbn);
-        } else {
-            // valid ISBN
-            break;
-        }
-    }
-
-    match book_processing::get_book_info(isbn.trim()).await {
-        Ok(book) => {
-            upload_book_to_database(book, isbn.trim(), &user, database_name);
-        },
-        Err(e) => {
-            println!("Error fetching book information: {}", e);
-        }
-    }
-
-    true
-}
-
-fn upload_book_to_database(book: Book, isbn: &str, user: &User, database_name: &str) -> anyhow::Result<(), Box<dyn Error>> {
-    let connection = Connection::open(database_name)?;
-    let primary_author = &book.get_authors()[0].name;
-    let title = book.get_title();
-    connection.execute(
-        "INSERT INTO books (title, author, isbn) VALUES (?1, ?2, ?3)",
-        params![title, primary_author, isbn.trim()],
-    ).context("Failed to execute INSERT into books table")?;
-
-    let query = "SELECT book_id FROM books WHERE isbn = ?1 AND title = ?2";
-    let book_id: i32 = connection.query_row(
-        query,
-        params![isbn.trim(), title],
-        |row| row.get(0)
-    ).context("Failed to retrieve book_id from books table")?;
-
-    let user_id = user.get_user_id();
-
-    connection.execute(
-        "INSERT INTO libraries (user_id, book_id) VALUES (?1, ?2)",
-        params![user_id, book_id],
-    ).context("Failed to execute insert into libraries table")?;
-    Ok(())
-}
-
 pub async fn process_user_menu_choice(choice: usize, user: &User, database_name: &str) -> bool {
     match choice {
         1 => {
@@ -358,7 +320,7 @@ pub async fn process_user_menu_choice(choice: usize, user: &User, database_name:
             true // Continue the loop
         },
         2 => {
-            if add_new_book_to_collection(database_name, &user).await {
+            if book_processing::add_new_book_to_collection(database_name, &user).await {
                 println!("Book added successfully.");
             } else {
                 println!("Failed to add the book.");
@@ -371,6 +333,11 @@ pub async fn process_user_menu_choice(choice: usize, user: &User, database_name:
             // Implement delete functionality here
             // For example:
             // delete_book().await;
+            if book_processing::delete_book_from_collection(database_name, &user).await {
+                println!("Book deleted successfully.");
+            } else {
+                println!("Failed to delete the book.");
+            }
             pause(2);
             true // Continue the loop
         },

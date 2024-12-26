@@ -1,4 +1,11 @@
+use std::error::Error;
+use std::io;
+use rusqlite::{params, Connection};
 use crate::book_object::{Book};
+use crate::{book_processing, utilities};
+use crate::user_object::User;
+use crate::utilities::clear_screen;
+use anyhow::{Context};
 
 pub fn is_valid_isbn(isbn: &str) -> bool {
     let cleaned: String = isbn.chars().filter(|c| c.is_digit(10)).collect();
@@ -80,4 +87,95 @@ pub async fn get_book_info(isbn: &str) -> Result<Book, Box<dyn std::error::Error
     } else {
         Err("Book not found".into())
     }
+}
+
+/* ========================== */
+/* THIS IS STILL IN PROGRESS! */
+/* ========================== */
+pub(crate) async fn delete_book_from_collection(database_name: &str, user: &User) -> bool {
+    clear_screen();
+    print_delete_book_header();
+    let mut see_list: bool = false;
+    loop {
+        println!("Would you like to see a list of books (if you do not know the ISBN)? (y/n):");
+        see_list = utilities::get_yes_or_no();
+        if see_list {
+            // show user the book list so they can choose the id and/or isbn
+            break;
+        } else {
+            break;
+        }
+    }
+    true
+}
+
+fn print_delete_book_header() {
+    println!("#################################");
+    println!("## Delete Book From Collection ##");
+    println!("#################################");
+}
+fn print_add_book_header() {
+    println!("############################");
+    println!("## Add Book to Collection ##");
+    println!("############################");
+}
+
+pub(crate) async fn add_new_book_to_collection(database_name: &str, user: &User) -> bool {
+    clear_screen();
+    print_add_book_header();
+    // get the ISBN from the user
+    let mut isbn: String = String::new();
+    loop {
+        println!("Enter ISBN(10 or 13):");
+        isbn.clear();
+        if io::stdin().read_line(&mut isbn).is_err() {
+            println!("Failed to read input. Please try again.");
+            continue;
+        }
+
+        let trimmed_isbn = isbn.trim();
+
+        if !is_valid_isbn(trimmed_isbn) {
+            println!("Invalid ISBN {}. Please try again.", trimmed_isbn);
+        } else {
+            // valid ISBN
+            break;
+        }
+    }
+
+    match get_book_info(isbn.trim()).await {
+        Ok(book) => {
+            upload_book_to_database(book, isbn.trim(), &user, database_name);
+        },
+        Err(e) => {
+            println!("Error fetching book information: {}", e);
+        }
+    }
+
+    true
+}
+
+fn upload_book_to_database(book: Book, isbn: &str, user: &User, database_name: &str) -> anyhow::Result<(), Box<dyn Error>> {
+    let connection = Connection::open(database_name)?;
+    let primary_author = &book.get_authors()[0].name;
+    let title = book.get_title();
+    connection.execute(
+        "INSERT INTO books (title, author, isbn) VALUES (?1, ?2, ?3)",
+        params![title, primary_author, isbn.trim()],
+    ).context("Failed to execute INSERT into books table")?;
+
+    let query = "SELECT book_id FROM books WHERE isbn = ?1 AND title = ?2";
+    let book_id: i32 = connection.query_row(
+        query,
+        params![isbn.trim(), title],
+        |row| row.get(0)
+    ).context("Failed to retrieve book_id from books table")?;
+
+    let user_id = user.get_user_id();
+
+    connection.execute(
+        "INSERT INTO libraries (user_id, book_id) VALUES (?1, ?2)",
+        params![user_id, book_id],
+    ).context("Failed to execute insert into libraries table")?;
+    Ok(())
 }
