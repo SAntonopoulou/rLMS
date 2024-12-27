@@ -28,6 +28,12 @@ pub struct WorkLink {
     pub key: String,
 }
 
+
+/* NOTE TO ADD: [ TOP PRIORITY ]
+ * I need to add to this ISBN storage as well
+ * as the book_id itself so that I can use these
+ * within the program.
+ */
 #[derive(Debug, Deserialize, Default)]
 pub struct Book {
     pub title: String,

@@ -1,6 +1,6 @@
 use std::error::Error;
 use std::io;
-use rusqlite::{params, Connection};
+use rusqlite::{params, Connection, Result};
 use crate::book_object::{Book};
 use crate::{book_processing, utilities};
 use crate::user_object::User;
@@ -92,7 +92,13 @@ pub async fn get_book_info(isbn: &str) -> Result<Book, Box<dyn std::error::Error
 /* ========================== */
 /* THIS IS STILL IN PROGRESS! */
 /* ========================== */
-pub(crate) async fn delete_book_from_collection(database_name: &str, user: &User) -> bool {
+/* NOTE: I also must add to this the ISBN and the
+ *       book_id as those are the fields I wish the
+ *       user to be able to use to delete the book.
+ *       This will require adjustments to the book
+ *       object as well. 
+ */
+pub(crate) fn delete_book_from_collection(database_name: &str, user: &User) -> bool {
     clear_screen();
     print_delete_book_header();
     let mut see_list: bool = false;
@@ -100,7 +106,53 @@ pub(crate) async fn delete_book_from_collection(database_name: &str, user: &User
         println!("Would you like to see a list of books (if you do not know the ISBN)? (y/n):");
         see_list = utilities::get_yes_or_no();
         if see_list {
-            // show user the book list so they can choose the id and/or isbn
+            // Connect to the database
+            let connection = match Connection::open(database_name) {
+                Ok(conn) => conn,
+                Err(e) => {
+                    eprintln!("Failed to connect to the database: {}", e);
+                    return false;
+                }
+            };
+
+            let mut query = match connection.prepare("SELECT * FROM books") {
+                Ok(query) => query,
+                Err(e) => {
+                    eprintln!("Failed to prepare SQL statement: {}", e);
+                    return false;
+                }
+            };
+
+            let book_iterator = match query.query_map([], |row| {
+                Ok(Book {
+                    title: row.get(1)?,
+                    authors: vec![crate::book_object::Author { name: row.get(2)?}],
+                    publish_date: String::new(),
+                    number_of_pages: None,
+                    cover: None,
+                    works: None,
+                    subjects: None,
+                    publishers: None,
+                })
+            }) {
+                Ok(iter) => iter,
+                Err(e) => {
+                    eprintln!("Failed to query books: {}", e);
+                    return false;
+                }
+            };
+
+            for book_result in book_iterator {
+                match book_result {
+                    Ok(book) => {
+                        book.print_book_info();
+                        println!("-----------------------------------");
+                    }
+                    Err(e) => eprintln!("Error retreiving book: {}", e),
+                }
+            }
+            utilities::pause(120);
+            /* start deletion process */
             break;
         } else {
             break;

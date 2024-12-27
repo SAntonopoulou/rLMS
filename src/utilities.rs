@@ -333,7 +333,7 @@ pub async fn process_user_menu_choice(choice: usize, user: &User, database_name:
             // Implement delete functionality here
             // For example:
             // delete_book().await;
-            if book_processing::delete_book_from_collection(database_name, &user).await {
+            if book_processing::delete_book_from_collection(database_name, &user) {
                 println!("Book deleted successfully.");
             } else {
                 println!("Failed to delete the book.");
