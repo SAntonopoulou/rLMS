@@ -1,7 +1,8 @@
 use std::error::Error;
 use std::io;
-use rusqlite::{params, Connection, Result};
-use crate::book_object::{Book};
+use std::io::Write;
+use rusqlite::{params, Connection, Row, Result};
+use crate::book_object::{Book, Author};
 use crate::{book_processing, utilities};
 use crate::user_object::User;
 use crate::utilities::clear_screen;
@@ -92,18 +93,12 @@ pub async fn get_book_info(isbn: &str) -> Result<Book, Box<dyn std::error::Error
 /* ========================== */
 /* THIS IS STILL IN PROGRESS! */
 /* ========================== */
-/* NOTE: I also must add to this the ISBN and the
- *       book_id as those are the fields I wish the
- *       user to be able to use to delete the book.
- *       This will require adjustments to the book
- *       object as well. 
- */
 pub(crate) fn delete_book_from_collection(database_name: &str, user: &User) -> bool {
     clear_screen();
     print_delete_book_header();
     let mut see_list: bool = false;
     loop {
-        println!("Would you like to see a list of books (if you do not know the ISBN)? (y/n):");
+        println!("Would you like to see a list of books (if you do not know the book ID)? (y/n):");
         see_list = utilities::get_yes_or_no();
         if see_list {
             // Connect to the database
@@ -123,6 +118,9 @@ pub(crate) fn delete_book_from_collection(database_name: &str, user: &User) -> b
                 }
             };
 
+            /* NOTE: I need to adjust the above query to only select books from this
+             *       individual users library!
+             */
             let book_iterator = match query.query_map([], |row| {
                 Ok(Book {
                     book_id: row.get(0)?,
@@ -144,6 +142,7 @@ pub(crate) fn delete_book_from_collection(database_name: &str, user: &User) -> b
                 }
             };
 
+
             for book_result in book_iterator {
                 match book_result {
                     Ok(book) => {
@@ -153,14 +152,56 @@ pub(crate) fn delete_book_from_collection(database_name: &str, user: &User) -> b
                     Err(e) => eprintln!("Error retreiving book: {}", e),
                 }
             }
-            utilities::pause(120);
-            /* start deletion process */
             break;
         } else {
             break;
         }
     }
-    true
+
+    loop {
+        println!("Enter the ID of the book you wish to delete: ");
+        io::stdout().flush().expect("Failed to flush stdout");
+
+        let mut choice = String::new();
+        if io::stdin().read_line(&mut choice).is_err() {
+            println!("Failed to read input. Please try again.");
+            continue;
+        }
+        let choice = choice.trim();
+
+        match choice.parse::<u32>() {
+            Ok(converted_choice) => {
+                let connection = match Connection::open(database_name) {
+                    Ok(connection) => connection,
+                    Err(e) => {
+                        eprintln!("Failed to connect to the database: {}", e);
+                        return false;
+                    }
+                };
+
+                if book_exists(&connection, converted_choice).expect("No book with id {converted_choice} exists") {
+                    // confirm deletion of book
+                    // delete book
+                    // return true if successful or false if no
+                    return true;
+                } else {
+                    println!("There is no book with ID: {}. Please try again.", converted_choice);
+                    continue;
+                }
+            }
+            Err(_) => {
+                println!("Invalid ID. Please enter a valid book ID.");
+                continue
+            }
+        }
+    }
+}
+
+fn book_exists(conn: &Connection, book_id: u32) -> Result<bool> {
+    let mut stmt = conn.prepare("SELECT EXISTS(SELECT 1 FROM books WHERE book_id = ?)")?;
+    let exists: i32 = stmt.query_row(params![book_id], |row| row.get(0))?;
+
+    Ok(exists != 0)
 }
 
 fn print_delete_book_header() {
