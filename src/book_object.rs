@@ -36,6 +36,8 @@ pub struct WorkLink {
  */
 #[derive(Debug, Deserialize, Default)]
 pub struct Book {
+    pub book_id: u32,
+    pub isbn: String,
     pub title: String,
     pub authors: Vec<Author>,
     pub publish_date: String,
@@ -49,6 +51,8 @@ pub struct Book {
 
 impl Book {
     pub fn print_book_info(&self) {
+        println!("Book ID: {}", self.book_id);
+        println!("ISBN: {}", self.isbn);
         println!("Title: {}", self.title);
 
         // Handle authors
@@ -107,6 +111,8 @@ impl Book {
         }
     }
 
+    pub fn get_id(&self) -> u32 { self.book_id.clone() }
+    pub fn get_isbn(&self) -> String { self.isbn.clone() }
     pub fn get_title(&self) -> String { self.title.clone() }
     pub fn get_authors(&self) -> Vec<Author> { self.authors.clone() }
     pub fn get_pub_date(&self) -> String { self.publish_date.clone() }

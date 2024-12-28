@@ -125,6 +125,8 @@ pub(crate) fn delete_book_from_collection(database_name: &str, user: &User) -> b
 
             let book_iterator = match query.query_map([], |row| {
                 Ok(Book {
+                    book_id: row.get(0)?,
+                    isbn: row.get(3)?,
                     title: row.get(1)?,
                     authors: vec![crate::book_object::Author { name: row.get(2)?}],
                     publish_date: String::new(),
