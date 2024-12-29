@@ -29,6 +29,12 @@ pub struct WorkLink {
 }
 
 
+/* NOTE TO ADD: [HIGH PRIORITY]
+ * We need to adjust the constructor method of the book
+ * to include the book_id from the database after it has been
+ * created.
+ */
+
 /* NOTE TO ADD: [ TOP PRIORITY ]
  * I need to add to this ISBN storage as well
  * as the book_id itself so that I can use these

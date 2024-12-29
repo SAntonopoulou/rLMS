@@ -90,6 +90,40 @@ pub async fn get_book_info(isbn: &str) -> Result<Book, Box<dyn std::error::Error
     }
 }
 
+
+fn get_books_by_user(conn: &Connection, user_id: i32) -> Result<Vec<Book>> {
+    // Prepare the SQL query
+    let mut stmt = conn.prepare(
+        "SELECT books.book_id, books.title, books.author, books.isbn
+         FROM books
+         JOIN libraries ON books.book_id = libraries.book_id
+         WHERE libraries.user_id = ?1",
+    )?;
+
+    // Execute the query and map the results to the Book struct
+    let book_iter = stmt.query_map(params![user_id], |row| {
+        Ok(Book {
+            book_id: row.get(0)?,
+            isbn: row.get(3)?,
+            title: row.get(1)?,
+            authors: vec![crate::book_object::Author { name: row.get(2)?}],
+            publish_date: String::new(),
+            number_of_pages: None,
+            cover: None,
+            works: None,
+            subjects: None,
+            publishers: None,
+        })
+    })?;
+
+    // Collect the results into a Vec<Book>
+    let mut books = Vec::new();
+    for book in book_iter {
+        books.push(book?);
+    }
+
+    Ok(books)
+}
 /* ========================== */
 /* THIS IS STILL IN PROGRESS! */
 /* ========================== */
@@ -110,47 +144,16 @@ pub(crate) fn delete_book_from_collection(database_name: &str, user: &User) -> b
                 }
             };
 
-            let mut query = match connection.prepare("SELECT * FROM books") {
-                Ok(query) => query,
-                Err(e) => {
-                    eprintln!("Failed to prepare SQL statement: {}", e);
-                    return false;
-                }
-            };
-
-            /* NOTE: I need to adjust the above query to only select books from this
-             *       individual users library!
-             */
-            let book_iterator = match query.query_map([], |row| {
-                Ok(Book {
-                    book_id: row.get(0)?,
-                    isbn: row.get(3)?,
-                    title: row.get(1)?,
-                    authors: vec![crate::book_object::Author { name: row.get(2)?}],
-                    publish_date: String::new(),
-                    number_of_pages: None,
-                    cover: None,
-                    works: None,
-                    subjects: None,
-                    publishers: None,
-                })
-            }) {
-                Ok(iter) => iter,
-                Err(e) => {
-                    eprintln!("Failed to query books: {}", e);
-                    return false;
-                }
-            };
-
-
-            for book_result in book_iterator {
-                match book_result {
-                    Ok(book) => {
-                        book.print_book_info();
-                        println!("-----------------------------------");
+            match get_books_by_user(&connection, user.get_user_id()) {
+                Ok(books) => {
+                    for book in books {
+                        println!(
+                            "ID: {}, Title: {}, Author: {}, ISBN: {}",
+                            book.book_id, book.title, book.authors.get(0).map_or("Unknown Author", |a| a.name.as_str()), book.isbn
+                        );
                     }
-                    Err(e) => eprintln!("Error retreiving book: {}", e),
                 }
+                Err(e) => println!("Error retrieving books: {}", e),
             }
             break;
         } else {
@@ -196,6 +199,7 @@ pub(crate) fn delete_book_from_collection(database_name: &str, user: &User) -> b
         }
     }
 }
+
 
 fn book_exists(conn: &Connection, book_id: u32) -> Result<bool> {
     let mut stmt = conn.prepare("SELECT EXISTS(SELECT 1 FROM books WHERE book_id = ?)")?;
