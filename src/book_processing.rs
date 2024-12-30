@@ -1,11 +1,11 @@
 use std::error::Error;
 use std::io;
 use std::io::Write;
-use rusqlite::{params, Connection, Row, Result};
-use crate::book_object::{Book, Author};
-use crate::{book_processing, utilities};
+use rusqlite::{params, Connection, Result};
+use crate::book_object::{Book};
+use crate::{book_object};
 use crate::user_object::User;
-use crate::utilities::clear_screen;
+use crate::utilities::{clear_screen, get_yes_or_no};
 use anyhow::{Context};
 
 pub fn is_valid_isbn(isbn: &str) -> bool {
@@ -60,7 +60,7 @@ fn is_valid_isbn13(isbn: &str) -> bool {
  *        you would like your program to take into account other fields
  *        that they offer.
  */
-pub async fn get_book_info(isbn: &str) -> Result<Book, Box<dyn std::error::Error>> {
+pub async fn get_book_info(isbn: &str) -> Result<Book, Box<dyn Error>> {
     let trimmed_isbn = isbn.trim(); // Ensure the ISBN is trimmed
 
     if !is_valid_isbn(trimmed_isbn) {
@@ -83,13 +83,24 @@ pub async fn get_book_info(isbn: &str) -> Result<Book, Box<dyn std::error::Error
 
     let key = format!("ISBN:{}", trimmed_isbn);
     if let Some(book_data) = json.get(&key) {
-        let book: Book = serde_json::from_value(book_data.clone())?;
+        let ol_book: book_object::OpenLibraryBook = serde_json::from_value(book_data.clone())?;
+        let book = Book {
+            book_id: None,
+            isbn: trimmed_isbn.to_string(),
+            title: ol_book.title,
+            authors: ol_book.authors,
+            publish_date: ol_book.publish_date,
+            number_of_pages: ol_book.number_of_pages,
+            cover: ol_book.cover,
+            works: ol_book.works,
+            subjects: ol_book.subjects,
+            publishers: ol_book.publishers,
+        };
         Ok(book)
     } else {
         Err("Book not found".into())
     }
 }
-
 
 fn get_books_by_user(conn: &Connection, user_id: i32) -> Result<Vec<Book>> {
     // Prepare the SQL query
@@ -106,7 +117,7 @@ fn get_books_by_user(conn: &Connection, user_id: i32) -> Result<Vec<Book>> {
             book_id: row.get(0)?,
             isbn: row.get(3)?,
             title: row.get(1)?,
-            authors: vec![crate::book_object::Author { name: row.get(2)?}],
+            authors: vec![book_object::Author { name: row.get(2)?}],
             publish_date: String::new(),
             number_of_pages: None,
             cover: None,
@@ -124,16 +135,14 @@ fn get_books_by_user(conn: &Connection, user_id: i32) -> Result<Vec<Book>> {
 
     Ok(books)
 }
-/* ========================== */
-/* THIS IS STILL IN PROGRESS! */
-/* ========================== */
+
 pub(crate) fn delete_book_from_collection(database_name: &str, user: &User) -> bool {
     clear_screen();
     print_delete_book_header();
     let mut see_list: bool = false;
     loop {
         println!("Would you like to see a list of books (if you do not know the book ID)? (y/n):");
-        see_list = utilities::get_yes_or_no();
+        see_list = get_yes_or_no();
         if see_list {
             // Connect to the database
             let connection = match Connection::open(database_name) {
@@ -149,7 +158,10 @@ pub(crate) fn delete_book_from_collection(database_name: &str, user: &User) -> b
                     for book in books {
                         println!(
                             "ID: {}, Title: {}, Author: {}, ISBN: {}",
-                            book.book_id, book.title, book.authors.get(0).map_or("Unknown Author", |a| a.name.as_str()), book.isbn
+                            book.book_id.map(|id| id.to_string()).unwrap_or_else(|| "Not available".to_string()),
+                            book.title,
+                            book.authors.get(0).map_or("Unknown Author", |a| a.name.as_str()),
+                            book.isbn
                         );
                     }
                 }
@@ -184,8 +196,12 @@ pub(crate) fn delete_book_from_collection(database_name: &str, user: &User) -> b
 
                 if book_exists(&connection, converted_choice).expect("No book with id {converted_choice} exists") {
                     // confirm deletion of book
-                    // delete book
-                    // return true if successful or false if no
+                    println!("You would like to delete book with the ID {}? (y/n)", converted_choice);
+                    if !get_yes_or_no() { continue; }
+                    connection.execute(
+                        "DELETE FROM libraries WHERE user_id = ?1 AND book_id = ?2",
+                        params![user.get_user_id(), converted_choice],
+                    ).with_context(|| format!("Failed to delete book with ID {} from user {}", converted_choice, user.get_user_id()));
                     return true;
                 } else {
                     println!("There is no book with ID: {}. Please try again.", converted_choice);
@@ -219,6 +235,18 @@ fn print_add_book_header() {
     println!("############################");
 }
 
+/* ========= TO DO [ TOP PRIORITY ===========
+ * I need to modify this so it checks
+ * if a book with the provided ISBN
+ * already exists in the library, and
+ * if it does I need to merely associate
+ * that book with the particular users
+ * library.
+ *
+ * If the book does not already exist
+ * by ISBN then the book will be added
+ * new to the database.
+ */
 pub(crate) async fn add_new_book_to_collection(database_name: &str, user: &User) -> bool {
     clear_screen();
     print_add_book_header();

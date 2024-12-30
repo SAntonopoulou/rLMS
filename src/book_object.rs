@@ -42,7 +42,7 @@ pub struct WorkLink {
  */
 #[derive(Debug, Deserialize, Default)]
 pub struct Book {
-    pub book_id: u32,
+    pub book_id: Option<u32>,
     pub isbn: String,
     pub title: String,
     pub authors: Vec<Author>,
@@ -54,10 +54,25 @@ pub struct Book {
     pub publishers: Option<Vec<Publisher>>,
 }
 
+#[derive(Debug, Deserialize, Clone)]
+pub struct OpenLibraryBook {
+    pub title: String,
+    pub authors: Vec<Author>,
+    pub publish_date: String,
+    pub number_of_pages: Option<u32>,
+    pub cover: Option<Cover>,
+    pub works: Option<Vec<WorkLink>>,
+    pub subjects: Option<Vec<Subject>>,
+    pub publishers: Option<Vec<Publisher>>,
+}
 
 impl Book {
     pub fn print_book_info(&self) {
-        println!("Book ID: {}", self.book_id);
+        match self.book_id {
+            Some(id) => println!("Book ID: {}", id),
+            None => println!("Book ID: Not available"),
+        }
+
         println!("ISBN: {}", self.isbn);
         println!("Title: {}", self.title);
 
@@ -116,8 +131,31 @@ impl Book {
             println!("Publishers: Not available");
         }
     }
-
-    pub fn get_id(&self) -> u32 { self.book_id.clone() }
+    pub fn new_without_id(
+        isbn: String,
+        title: String,
+        authors: Vec<Author>,
+        publish_date: String,
+        number_of_pages: Option<u32>,
+        cover: Option<Cover>,
+        works: Option<Vec<WorkLink>>,
+        subjects: Option<Vec<Subject>>,
+        publishers: Option<Vec<Publisher>>,
+    ) -> Self {
+        Self {
+            book_id: None,
+            isbn,
+            title,
+            authors,
+            publish_date,
+            number_of_pages,
+            cover,
+            works,
+            subjects,
+            publishers,
+        }
+    }
+    pub fn get_id(&self) -> Option<u32> { self.book_id.clone() }
     pub fn get_isbn(&self) -> String { self.isbn.clone() }
     pub fn get_title(&self) -> String { self.title.clone() }
     pub fn get_authors(&self) -> Vec<Author> { self.authors.clone() }
