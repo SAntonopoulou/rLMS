@@ -216,6 +216,11 @@ pub(crate) fn delete_book_from_collection(database_name: &str, user: &User) -> b
     }
 }
 
+fn book_in_library_already(conn: &Connection, isbn: &str) -> Result<bool> {
+    let mut stmt = conn.prepare("SELECT EXISTS(SELECT 1 FROM books WHERE isbn = ?)")?;
+    let exists: i32 = stmt.query_row(params![isbn], |row| row.get(0))?;
+    Ok(exists != 0)
+}
 
 fn book_exists(conn: &Connection, book_id: u32) -> Result<bool> {
     let mut stmt = conn.prepare("SELECT EXISTS(SELECT 1 FROM books WHERE book_id = ?)")?;
@@ -235,18 +240,6 @@ fn print_add_book_header() {
     println!("############################");
 }
 
-/* ========= TO DO [ TOP PRIORITY ===========
- * I need to modify this so it checks
- * if a book with the provided ISBN
- * already exists in the library, and
- * if it does I need to merely associate
- * that book with the particular users
- * library.
- *
- * If the book does not already exist
- * by ISBN then the book will be added
- * new to the database.
- */
 pub(crate) async fn add_new_book_to_collection(database_name: &str, user: &User) -> bool {
     clear_screen();
     print_add_book_header();
@@ -286,10 +279,16 @@ fn upload_book_to_database(book: Book, isbn: &str, user: &User, database_name: &
     let connection = Connection::open(database_name)?;
     let primary_author = &book.get_authors()[0].name;
     let title = book.get_title();
-    connection.execute(
-        "INSERT INTO books (title, author, isbn) VALUES (?1, ?2, ?3)",
-        params![title, primary_author, isbn.trim()],
-    ).context("Failed to execute INSERT into books table")?;
+    let exists = book_in_library_already(&connection, isbn)
+        .with_context(|| format!("Failed to check if the book with ISBN {} exists", isbn))?;
+
+    if !exists {
+        crate::utilities::pause(15);
+        connection.execute(
+            "INSERT INTO books (title, author, isbn) VALUES (?1, ?2, ?3)",
+            params![title, primary_author, isbn.trim()],
+        ).with_context(|| "Failed to execute INSERT into books table")?;
+    }
 
     let query = "SELECT book_id FROM books WHERE isbn = ?1 AND title = ?2";
     let book_id: i32 = connection.query_row(
