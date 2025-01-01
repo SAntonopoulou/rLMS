@@ -5,6 +5,7 @@ mod user_management;
 mod user_object;
 mod book_processing;
 mod book_object;
+mod user_processing;
 
 use std::io::Write;
 use anyhow::Result;

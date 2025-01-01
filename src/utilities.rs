@@ -1,4 +1,4 @@
-use crate::User;
+use crate::{user_processing, User};
 use crate::book_processing;
 use crossterm::terminal::ClearType;
 use crossterm::terminal::Clear;
@@ -346,6 +346,11 @@ pub async fn process_user_menu_choice(choice: usize, user: &User, database_name:
             // Implement modification functionality here
             // For example:
             // modify_user_info().await;
+            if user_processing::change_personal_information(database_name, &user) {
+                println!("Personal information changed successfully.");
+            } else {
+                println!("Failed to modify personal information.");
+            }
             pause(2);
             true // Continue the loop
         },
